@@ -7,11 +7,11 @@ specific characteristics, then return the first page's virtual address
 and the own program's PID.
 
 Possible Flags:
-  -c <NUM>: Allocate <NUM> ammount of pages
-  -p : Make the pages private
-  -s : Make the pages shared
-  -a : Allocate anonymous pages
-  -m : Allocate pages using memfd()
+* -c <NUM>: Allocate <NUM> ammount of pages
+* -p : Make the pages private
+* -s : Make the pages shared
+* -a : Allocate anonymous pages
+* -m : Allocate pages using memfd()
 
 ### `create_write_page_twice()`
 
