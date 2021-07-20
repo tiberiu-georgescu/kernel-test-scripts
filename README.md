@@ -1,2 +1,2 @@
-# kernel_test_scripts
+# Kernel Test Scripts
 Some script to help in testing and debugging kernel functionality. Main focus is memory management.
