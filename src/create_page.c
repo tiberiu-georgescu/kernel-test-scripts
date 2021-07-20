@@ -70,23 +70,26 @@ int set_options(int argc, char **argv, unsigned long *flags, int *fd, int *pages
         break;
       case 'm':
         *fd = syscall(SYS_memfd_create, "tibi_memfd", MFD_ALLOW_SEALING);
-        ftruncate(*fd, pagesize * (*pages_per_vaddr));
-        if (*fd == -1) {
+	if (*fd == -1) {
           perror("memfd failed to create fd");
           goto error;
-        }
+	}
         break;
       case 'f':
         *fd = open(optarg, O_RDWR);
-        if (*fd == -1) {
-          fprintf(stderr, "%s not found\n", optarg);
+	if (*fd == -1) {
+	  fprintf(stderr, "%s not found\n", optarg);
           goto error;
-        }
+	}
         break;
       case 'c':
         *pages_per_vaddr = atoi(optarg);
         break;
     }
+  }
+
+  if (*fd != -1) {
+    ftruncate(*fd, pagesize * (*pages_per_vaddr));
   }
 
   return 0;
