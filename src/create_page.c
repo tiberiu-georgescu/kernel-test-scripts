@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   printf("Virtual Address: 0x%lx\n", (unsigned long)vaddr);
 
   getchar();
-  munmap(vaddr, pagesize * PAGES_PER_VADDR);
+  munmap(vaddr, pagesize * pages_per_vaddr);
 }
 
 int set_options(int argc, char **argv, unsigned long *flags, int *fd, int *pages_per_vaddr) {
