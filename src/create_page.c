@@ -1,19 +1,21 @@
 #define _GNU_SOURCE
+#include <unistd.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <linux/memfd.h>
 #include <sys/syscall.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 
 #define PAGES_PER_VADDR 256
 
 int error_check(unsigned long flags, int fd);
-int set_options(int argc, char **argv, unsigned long *flags, int *fd, int *pages_per_vaddr);
+int set_options(int argc, char **argv, unsigned long *flags, int *fd,
+		int *pages_per_vaddr, bool *wait_forever);
 
 int main(int argc, char **argv) {
   int fd = -1;
@@ -22,9 +24,10 @@ int main(int argc, char **argv) {
   pid_t pid = getpid();
   char* vaddr = NULL;
   int pages_per_vaddr = PAGES_PER_VADDR;
+  bool wait_forever = false;
   int ret = 0;
 
-  ret = set_options(argc, argv, &flags, &fd, &pages_per_vaddr);
+  ret = set_options(argc, argv, &flags, &fd, &pages_per_vaddr, &wait_forever);
   if (ret != 0) {
     return ret;
   }
@@ -49,15 +52,20 @@ int main(int argc, char **argv) {
 
   printf("Virtual Address: 0x%lx\n", (unsigned long)vaddr);
 
-  getchar();
+  if (wait_forever > 0) {
+    for (;;) pause();
+  } else {
+    getchar();
+  }
   munmap(vaddr, pagesize * pages_per_vaddr);
 }
 
-int set_options(int argc, char **argv, unsigned long *flags, int *fd, int *pages_per_vaddr) {
+int set_options(int argc, char **argv, unsigned long *flags, int *fd,
+		int *pages_per_vaddr, bool *wait_forever) {
   int option;
   size_t pagesize = getpagesize();
 
-  while ((option = getopt(argc, argv, "apsmf:c:")) != -1) {
+  while ((option = getopt(argc, argv, "apsmf:c:t")) != -1) {
     switch (option) {
       case 'a':
         *flags |= MAP_ANONYMOUS;
@@ -84,6 +92,9 @@ int set_options(int argc, char **argv, unsigned long *flags, int *fd, int *pages
         break;
       case 'c':
         *pages_per_vaddr = atoi(optarg);
+        break;
+      case 't':
+        *wait_forever = true;
         break;
     }
   }
