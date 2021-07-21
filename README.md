@@ -12,6 +12,7 @@ Possible Flags:
 * -s : Make the pages shared
 * -a : Allocate anonymous pages
 * -m : Allocate pages using memfd()
+* -f <FILE_NAME> : Allocate pages from existing file
 
 ### `create_write_page_twice()`
 
