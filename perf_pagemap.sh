@@ -20,24 +20,30 @@ if [[ ! -e "$OUTPUT_FILE" ]]; then
   touch $OUTPUT_FILE
 fi
 
+
+echo "PAGES, ACCESS, DIRTY %, SWAPPED %, PRESENT %, NONE %, REAL TIME, USER TIME, SYS TIME"
+
 # for PAGES in 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536
 for PAGES in 64 128 256
 do
   for ACCESS in '-p' '-s' ;
+  do
+    for DIRTY_PER in 0 50 100 ;
     do
-    for ALLOC in '-a' '-m' "-f $TEST_FILE"  ;
-    do
-      sudo cgexec -g memory:examples ~/kernel-test-scripts/create_page -c $PAGES $ACCESS $ALLOC 2>/dev/null
+      . reset_test_cgroup.sh &>/dev/null
+      cgexec -g memory:examples ~/kernel-test-scripts/create_page -t -c $PAGES $ACCESS -a -d $DIRTY_PER &>/dev/null &
+      sleep 2
+      DD_TIME=$(. ~/kernel-test-scripts/stats_dd_pagemap.sh -c $PAGES -v 0x600000000000 -m -p $(pgrep create_page))
+      pkill -15 create_page >/dev/null
+      echo "$PAGES, $ACCESS, $DIRTY_PER, $DD_TIME"
     done
   done
 done
 
 
 
-#     cgexec -g memory:examples /home/tiberiu.georgescu/kernel-test-scripts/create_page -c $PAGES $ACCESS $ALLOC >$INTER_FILE 2>/dev/null
 #     JOB_PID=$!
 #     JOB_ID=$(jobs -l | grep $JOB_PID | cut -c2)
 #     sleep 2
-#     cat $INTER_FILE
 #     pkill -15 create_page >/dev/null
 #     fg %$JOB_ID

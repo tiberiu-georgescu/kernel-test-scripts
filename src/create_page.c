@@ -12,10 +12,11 @@
 #include <fcntl.h>
 
 #define PAGES_PER_VADDR 256
+#define DEFAULT_VADDR 0x600000000000
 
 int error_check(unsigned long flags, int fd);
 int set_options(int argc, char **argv, unsigned long *flags, int *fd,
-		int *pages_per_vaddr, bool *wait_forever);
+		int *pages_per_vaddr, bool *wait_forever, bool *no_dirty, bool *dirty_50);
 
 int main(int argc, char **argv) {
   int fd = -1;
@@ -24,10 +25,13 @@ int main(int argc, char **argv) {
   pid_t pid = getpid();
   char* vaddr = NULL;
   int pages_per_vaddr = PAGES_PER_VADDR;
+  bool no_dirty = false;
+  bool dirty_50 = false;
   bool wait_forever = false;
   int ret = 0;
 
-  ret = set_options(argc, argv, &flags, &fd, &pages_per_vaddr, &wait_forever);
+  ret = set_options(argc, argv, &flags, &fd, &pages_per_vaddr, &wait_forever,
+                    &no_dirty, &dirty_50);
   if (ret != 0) {
     return ret;
   }
@@ -41,12 +45,14 @@ int main(int argc, char **argv) {
   printf("Own pid: %d\n", pid);
   printf("File Descriptor: %d\n", fd);
 
-  vaddr = mmap(NULL, pagesize * pages_per_vaddr, PROT_READ | PROT_WRITE,
+  vaddr = mmap((void *) DEFAULT_VADDR, pagesize * pages_per_vaddr, PROT_READ | PROT_WRITE,
                                flags, fd, 0);
-  size_t i;
-  for (i = 0; i < pages_per_vaddr; i++) {
-    if (i != 5) {
-      vaddr[i * pagesize] = i;
+  if (!no_dirty) {
+    size_t i;
+    for (i = 0; i < pages_per_vaddr; i++) {
+      if (!(dirty_50 && i % 2 == 1)) {
+        vaddr[i * pagesize] = i;
+      }
     }
   }
 
@@ -61,11 +67,12 @@ int main(int argc, char **argv) {
 }
 
 int set_options(int argc, char **argv, unsigned long *flags, int *fd,
-		int *pages_per_vaddr, bool *wait_forever) {
+		int *pages_per_vaddr, bool *wait_forever, bool *no_dirty, bool *dirty_50) {
   int option;
+  int dirty_per;
   size_t pagesize = getpagesize();
 
-  while ((option = getopt(argc, argv, "apsmf:c:t")) != -1) {
+  while ((option = getopt(argc, argv, "apsmf:c:d:t")) != -1) {
     switch (option) {
       case 'a':
         *flags |= MAP_ANONYMOUS;
@@ -78,23 +85,31 @@ int set_options(int argc, char **argv, unsigned long *flags, int *fd,
         break;
       case 'm':
         *fd = syscall(SYS_memfd_create, "tibi_memfd", MFD_ALLOW_SEALING);
-	if (*fd == -1) {
-          perror("memfd failed to create fd");
-          goto error;
-	}
+        if (*fd == -1) {
+           perror("memfd failed to create fd");
+           goto error;
+        }
         break;
       case 'f':
         *fd = open(optarg, O_RDWR);
-	if (*fd == -1) {
-	  fprintf(stderr, "%s not found\n", optarg);
+        if (*fd == -1) {
+          fprintf(stderr, "%s not found\n", optarg);
           goto error;
-	}
+        }
         break;
       case 'c':
         *pages_per_vaddr = atoi(optarg);
         break;
       case 't':
         *wait_forever = true;
+        break;
+      case 'd':
+        dirty_per = atoi(optarg);
+        if (dirty_per < 50) {
+          *no_dirty = true;
+        } else if (dirty_per < 100) {
+          *dirty_50 = true;
+        }
         break;
     }
   }
