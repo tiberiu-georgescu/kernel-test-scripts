@@ -47,6 +47,8 @@ int main(int argc, char **argv) {
 
   vaddr = mmap((void *) DEFAULT_VADDR, pagesize * pages_per_vaddr, PROT_READ | PROT_WRITE,
                                flags, fd, 0);
+  printf("Virtual Address: 0x%lx\n", (unsigned long)vaddr);
+
   if (!no_dirty) {
     size_t i;
     for (i = 0; i < pages_per_vaddr; i++) {
@@ -56,13 +58,16 @@ int main(int argc, char **argv) {
     }
   }
 
-  printf("Virtual Address: 0x%lx\n", (unsigned long)vaddr);
+  printf("Dirtying done. Pagemap can be inspected\n");
+  FILE *fp;
+  fp = fopen("/tmp/create_page_dirty.txt", "w");
 
   if (wait_forever > 0) {
     for (;;) pause();
   } else {
     getchar();
   }
+  fclose(fp);
   munmap(vaddr, pagesize * pages_per_vaddr);
 }
 

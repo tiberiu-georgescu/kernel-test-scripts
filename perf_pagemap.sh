@@ -32,10 +32,11 @@ do
     do
       . reset_test_cgroup.sh &>/dev/null
       cgexec -g memory:examples ~/kernel-test-scripts/create_page -t -c $PAGES $ACCESS -a -d $DIRTY_PER &>/dev/null &
-      sleep 2
+      while ! test -e /tmp/create_page_dirty.txt; do sleep 1; done
       DD_TIME=$(. ~/kernel-test-scripts/stats_dd_pagemap.sh -c $PAGES -v 0x600000000000 -m -p $(pgrep create_page))
       pkill -15 create_page >/dev/null
       echo "$PAGES, $ACCESS, $DIRTY_PER, $DD_TIME"
+      rm -f /tmp/create_page_dirty.txt
     done
   done
 done
