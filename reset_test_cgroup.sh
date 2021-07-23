@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SWAPPINESS=60
-LIMIT_IN_BYTES=1M
+LIMIT_IN_BYTES=4G
 
 while getopts ":s:l:" arg; do
   case $arg in

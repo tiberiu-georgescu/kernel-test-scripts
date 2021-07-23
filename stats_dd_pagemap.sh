@@ -1,5 +1,6 @@
 #!/bin/bash
 
+EXPORT_CSV='/tmp/test.csv'
 OUTPUT_FILE=~/dd_pagemap.out
 
 if [[ ! -e "$OUTPUT_FILE" ]]; then
@@ -28,25 +29,20 @@ while getopts ":p:v:c:o:m" arg; do
 done
 
 if [ $MUTE -eq 0 ]; then
-  echo "SWAPPED %, PRESENT %, NONE %, REAL TIME, USER TIME, SYS TIME"
+  echo "SWAPPED %, PRESENT %, NONE %, MEAN REAL TIME, STDDEV, MEDIAN, USER TIME, SYS TIME, MIN TIME, MAX TIME"
 fi
 
 SKIP=$(($VADDR / 4096 + $OFFSET))
 dd if=/proc/$PID/pagemap ibs=8 skip=$SKIP count=$COUNT >$OUTPUT_FILE 2>/dev/null
-TIMES=$( (time for i in $(eval echo {1..$ITERATIONS}); do \
-                 dd if=/proc/$PID/pagemap ibs=8 skip=$SKIP count=$COUNT &>/dev/null; \
-               done) |& grep -Po [0-9]*m[0-9]*\.[0-9]*s)
+hyperfine --style none --export-csv $EXPORT_CSV --warmup 3 --runs 10 "dd if=/proc/$PID/pagemap ibs=8 skip=$SKIP count=$COUNT" &>/dev/null
 
-SAVEIFS=$IFS   # Save current IFS
-IFS=$'\n'      # Change IFS to new line
-TIMES=($TIMES) # split to array $TIMES
-IFS=$SAVEIFS   # Restore IFS
+TIMES=$(cat $EXPORT_CSV | tail -n 1 | cut -d "," -f2-)
 
 swapped=$(cat $OUTPUT_FILE | hexdump -C | cut -c 9-59 | grep -Po '([0-9a-f]{2}\s){7}[0-9a-f]{2}' | grep -Po '([0-9a-f]{2}\s){7}[4-5]0' | wc -l)
 present=$(cat $OUTPUT_FILE | hexdump -C | cut -c 9-59 | grep -Po '([0-9a-f]{2}\s){7}[0-9a-f]{2}' | grep -Po '([0-9a-f]{2}\s){7}[0-9a-f]1' | wc -l)
 zeroed=$(($COUNT - $swapped - $present))
 
-echo "$swapped/$COUNT, $present/$COUNT, $zeroed/$COUNT, ${TIMES[0]}, ${TIMES[1]}, ${TIMES[2]}"
+echo "$swapped/$COUNT, $present/$COUNT, $zeroed/$COUNT, $TIMES"
 
 
 OPTIND=1
