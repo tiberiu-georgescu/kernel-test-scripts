@@ -27,21 +27,23 @@ echo "PAGES, ACCESS, DIRTY %, BATCH SIZE, SWAPPED %, PRESENT %, NONE %, MEAN REA
 # for PAGES in 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536
 for PAGES in 4194304 # 16GB in pages
 do
-  for ACCESS in '-s' ;
+  for ACCESS in '-p' '-s' ;
   do
-    for DIRTY_PER in 50 100 ;
+    for DIRTY_PER in 0 50 100 ;
     do
+      . reset_test_cgroup.sh &>/dev/null # TODO: add explicit flags for limit_in_bytes
+      cgexec -g memory:examples ~/kernel-test-scripts/create_page -t -c $PAGES $ACCESS -a -d $DIRTY_PER &>/dev/null &
+      while ! test -e /tmp/create_page_dirty.txt; do sleep 1; done
+      rm -f /tmp/create_page_dirty.txt
+
       for BATCH_SIZE in 1 2 4 8 16 32 64 ;
       do
-        . reset_test_cgroup.sh &>/dev/null # -l 4G &>/dev/null # Curently flag not functional
-        cgexec -g memory:examples ~/kernel-test-scripts/create_page -t -c $PAGES $ACCESS -a -d $DIRTY_PER &>/dev/null &
-        while ! test -e /tmp/create_page_dirty.txt; do sleep 1; done
-        rm -f /tmp/create_page_dirty.txt
         DD_TIME=$(. ~/kernel-test-scripts/stats_dd_pagemap.sh -c $PAGES -v 0x600000000000 -m -b $BATCH_SIZE -i 3 -p $(pgrep create_page))
-        pkill -15 create_page >/dev/null
-        tail --pid=$(pgrep create_page) -f /dev/null 2>/dev/null
         echo "$PAGES, $ACCESS, $DIRTY_PER, $BATCH_SIZE, $DD_TIME"
       done
+
+      pkill -15 create_page >/dev/null
+      tail --pid=$(pgrep create_page) -f /dev/null 2>/dev/null
     done
   done
 done
