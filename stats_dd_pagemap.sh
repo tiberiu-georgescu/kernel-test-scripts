@@ -11,17 +11,17 @@ fi
 OPTIND=1
 
 ITERATIONS=10
-OFFSET=0
 COUNT=256
+BATCH_SIZE=1
 MUTE=0
 
-while getopts ":p:v:c:o:m" arg; do
+while getopts ":p:v:c:i:b:m" arg; do
   case $arg in
     p) PID=$OPTARG;;
     v) VADDR=$OPTARG;;
     c) COUNT=$OPTARG;;
-    o) OFFSET=$OPTARG;;
     i) ITERATIONS=$OPTARG;;
+    b) BATCH_SIZE=$OPTARG;;
     m) MUTE=1;;
     ?) echo "Invalid option: -${OPTARG}."
        exit 2 ;;
@@ -32,9 +32,12 @@ if [ $MUTE -eq 0 ]; then
   echo "SWAPPED %, PRESENT %, NONE %, MEAN REAL TIME, STDDEV, MEDIAN, USER TIME, SYS TIME, MIN TIME, MAX TIME"
 fi
 
-SKIP=$(($VADDR / 4096 + $OFFSET))
-dd if=/proc/$PID/pagemap ibs=8 skip=$SKIP count=$COUNT >$OUTPUT_FILE 2>/dev/null
-hyperfine --style none --export-csv $EXPORT_CSV --warmup 3 --runs 10 "dd if=/proc/$PID/pagemap ibs=8 skip=$SKIP count=$COUNT" &>/dev/null
+IBS=$(($BATCH_SIZE * 8))
+SKIP=$((($VADDR / 4096) / $BATCH_SIZE))
+BATCH_COUNT=$(($COUNT / $BATCH_SIZE))
+dd if=/proc/$PID/pagemap ibs=$IBS skip=$SKIP count=$BATCH_COUNT >$OUTPUT_FILE 2>/dev/null
+hyperfine --style none --export-csv $EXPORT_CSV --warmup 3 --runs $ITERATIONS\
+	"dd if=/proc/$PID/pagemap ibs=$IBS skip=$SKIP count=$BATCH_COUNT" &>/dev/null
 
 TIMES=$(cat $EXPORT_CSV | tail -n 1 | cut -d "," -f2-)
 
