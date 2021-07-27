@@ -1,5 +1,17 @@
 #!/bin/bash
 
+function usage {
+  echo "Usage: $(basename $BASH_SOURCE) [-h] [-m] [-p PID] [-v VADDR] [-c PAGES] [-i ITERATIONS] [-b BATCH_SIZE]" 2>&1
+  echo "   -p PID         PID of monitored process"
+  echo "   -v VADDR       virtual address at which dd read starts"
+  echo "   -c PAGES       number of pagemap entries that dd needs to read"
+  echo "   -i ITERATIONS  number of times dd is repeated for performance measurement"
+  echo "   -b BATCH_SIZE  number of pagemap entries being read in one function call"
+  echo "   -m  "MUTE". Only used in conjunction with perf_pagemap. Notifies not to output the top line of the results"
+  echo "   -h  Help menu"
+  return 1
+}
+
 EXPORT_CSV='/tmp/test.csv'
 OUTPUT_FILE=~/dd_pagemap.out
 
@@ -7,6 +19,12 @@ OUTPUT_FILE=~/dd_pagemap.out
 if [[ ! -e "$OUTPUT_FILE" ]]; then
   echo "Creating temporary file $OUTPUT_FILE..."
   touch $OUTPUT_FILE
+fi
+
+# if no input argument found, exit the script with usage
+if [[ ${#} -eq 0 ]]; then
+  usage
+  return 1
 fi
 
 # Default Parameters
@@ -18,8 +36,10 @@ MUTE=0
 
 # Initialising Parameters
 OPTIND=1
-while getopts ":p:v:c:i:b:m" arg; do
+while getopts ":p:v:c:i:b:mh" arg; do
   case $arg in
+    h) usage
+       return 1 ;;
     p) PID=$OPTARG;;
     v) VADDR=$OPTARG;;
     c) COUNT=$OPTARG;;
@@ -27,7 +47,7 @@ while getopts ":p:v:c:i:b:m" arg; do
     b) BATCH_SIZE=$OPTARG;;
     m) MUTE=1;;
     ?) echo "Invalid option: -${OPTARG}."
-       exit 2 ;;
+       return 2 ;;
   esac
 done
 
