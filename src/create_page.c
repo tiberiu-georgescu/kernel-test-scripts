@@ -17,6 +17,7 @@
 int error_check(unsigned long flags, int fd);
 int set_options(int argc, char **argv, unsigned long *flags, int *fd,
 		int *pages_per_vaddr, bool *wait_forever, bool *no_dirty, bool *dirty_50);
+void usage(void);
 
 int main(int argc, char **argv) {
   int fd = -1;
@@ -71,14 +72,30 @@ int main(int argc, char **argv) {
   munmap(vaddr, pagesize * pages_per_vaddr);
 }
 
+void usage(void) {
+  printf("Usage: create_page [-ps] [-am/-f FILE] [-c PAGES] [-t] [-d [0/50/100]]\n");
+  printf("  -p            map pages as MAP_PRIVATE\n");
+  printf("  -s            map pages as MAP_SHARED\n");
+  printf("  -a            map pages as MAP_ANONYMOUS\n");
+  printf("  -m            allocate pages using memfd\n");
+  printf("  -f FILE       allocate pages from existing FILE\n");
+  printf("  -c PAGES      allocate n amount of pages\n");
+  printf("  -d [0/50/100] dirty (write to) a percentage of the pages allocated. \n");
+  printf("  -t            (used by perf_pagemap) run forever\n");
+  exit(1);
+}
+
 int set_options(int argc, char **argv, unsigned long *flags, int *fd,
 		int *pages_per_vaddr, bool *wait_forever, bool *no_dirty, bool *dirty_50) {
   int option;
   int dirty_per;
   size_t pagesize = getpagesize();
 
-  while ((option = getopt(argc, argv, "apsmf:c:d:t")) != -1) {
+  while ((option = getopt(argc, argv, "hapsmf:c:d:t")) != -1) {
     switch (option) {
+      case 'h':
+        usage(); // Ends run
+        break;
       case 'a':
         *flags |= MAP_ANONYMOUS;
         break;

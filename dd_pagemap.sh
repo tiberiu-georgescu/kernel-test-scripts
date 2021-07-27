@@ -1,13 +1,12 @@
 #!/bin/bash
 
 function usage {
-  echo "Usage: $(basename $BASH_SOURCE) [-h] [-m] [-p PID] [-v VADDR] [-c PAGES] [-i ITERATIONS] [-b BATCH_SIZE]" 2>&1
+  echo "Usage: $(basename $BASH_SOURCE) [-h] [-p PID] [-v VADDR] [-c PAGES] [-o OFFSET] [-b BATCH_SIZE]" 2>&1
   echo "   -p PID         PID of monitored process"
   echo "   -v VADDR       virtual address at which dd read starts"
   echo "   -c PAGES       number of pagemap entries that dd needs to read"
-  echo "   -i ITERATIONS  number of times dd is repeated for performance measurement"
+  echo "   -o OFFSET      pagemap entry index from which dd may want to read"
   echo "   -b BATCH_SIZE  number of pagemap entries being read in one function call"
-  echo "   -m  "MUTE". Only used in conjunction with perf_pagemap. Notifies not to output the top line of the results"
   echo "   -h  Help menu"
   return 1
 }
