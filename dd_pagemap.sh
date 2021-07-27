@@ -1,5 +1,23 @@
 #!/bin/bash
 
+function usage {
+  echo "Usage: $(basename $BASH_SOURCE) [-h] [-m] [-p PID] [-v VADDR] [-c PAGES] [-i ITERATIONS] [-b BATCH_SIZE]" 2>&1
+  echo "   -p PID         PID of monitored process"
+  echo "   -v VADDR       virtual address at which dd read starts"
+  echo "   -c PAGES       number of pagemap entries that dd needs to read"
+  echo "   -i ITERATIONS  number of times dd is repeated for performance measurement"
+  echo "   -b BATCH_SIZE  number of pagemap entries being read in one function call"
+  echo "   -m  "MUTE". Only used in conjunction with perf_pagemap. Notifies not to output the top line of the results"
+  echo "   -h  Help menu"
+  return 1
+}
+
+# if no input argument found, exit the script with usage
+if [[ ${#} -eq 0 ]]; then
+  usage
+  return 1
+fi
+
 # Default Parameters
 VADDR=$((0x600000000000))
 COUNT=256
@@ -9,8 +27,10 @@ BATCH_SIZE=1
 
 # Initialising Parameters
 OPTIND=1
-while getopts ":p:v:c:o:b:" arg; do
+while getopts ":p:v:c:o:b:h" arg; do
   case $arg in
+    h) usage
+       return 1 ;;
     p) PID=$OPTARG;;
     v) VADDR=$OPTARG;;
     c) COUNT=$OPTARG;;
